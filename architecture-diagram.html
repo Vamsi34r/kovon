@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Architecture Diagram – Event-Driven Notification Dispatcher</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0d1b2a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+  h1 {
+    color: #e2e8f0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+  .subtitle {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+  .diagram {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 1100px;
+  }
+  /* ── Left column: synchronous flow ── */
+  .col-sync {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    max-width: 320px;
+  }
+  /* ── Right column: async flow ── */
+  .col-async {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    max-width: 320px;
+    margin-top: 390px; /* align queue with its branching point */
+  }
+
+  /* Connectors */
+  .bridge {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+    margin: 0;
+  }
+  .bridge-line {
+    border-top: 2px dashed #f59e0b;
+    flex: 1;
+    max-width: 200px;
+  }
+  .bridge-label {
+    color: #f59e0b;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  /* Boxes */
+  .box {
+    border-radius: 14px;
+    padding: 14px 20px;
+    text-align: center;
+    width: 100%;
+    position: relative;
+  }
+  .box-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+  .box-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .box-fields {
+    font-size: 0.68rem;
+    opacity: 0.75;
+    font-family: 'Courier New', monospace;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .box-icon { font-size: 1.4rem; margin-bottom: 4px; }
+
+  /* Colours */
+  .c-client  { background: linear-gradient(135deg,#0ea5e9,#0369a1); color:#fff; border: 1px solid #38bdf8; }
+  .c-api     { background: linear-gradient(135deg,#6366f1,#4338ca); color:#fff; border: 1px solid #818cf8; }
+  .c-valid   { background: linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border: 1px solid #fbbf24; }
+  .c-events  { background: linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border: 1px solid #4ade80; }
+  .c-notifs  { background: linear-gradient(135deg,#10b981,#059669); color:#fff; border: 1px solid #34d399; }
+  .c-queue   { background: linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border: 1px solid #c084fc; }
+  .c-worker  { background: linear-gradient(135deg,#f97316,#ea580c); color:#fff; border: 1px solid #fb923c; }
+  .c-sim     { background: linear-gradient(135deg,#14b8a6,#0d9488); color:#fff; border: 1px solid #2dd4bf; }
+  .c-update  { background: linear-gradient(135deg,#06b6d4,#0891b2); color:#fff; border: 1px solid #22d3ee; }
+
+  /* Arrows */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 2px 0;
+  }
+  .arrow-line {
+    width: 2px;
+    background: rgba(255,255,255,0.25);
+    flex: 1;
+    min-height: 14px;
+  }
+  .arrow-line.dashed {
+    background: repeating-linear-gradient(to bottom, #f59e0b 0, #f59e0b 5px, transparent 5px, transparent 10px);
+    width: 2px;
+  }
+  .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 10px solid rgba(255,255,255,0.35);
+  }
+  .arrow-head.amber { border-top-color: #f59e0b; }
+  .arrow-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-align: center;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+  .arrow-label.amber { color: #fcd34d; font-weight: 600; }
+
+  /* Status badges */
+  .badges { display: flex; gap: 10px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
+  .badge {
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .badge-green { background: #166534; color: #4ade80; border: 1px solid #22c55e; }
+  .badge-red   { background: #7f1d1d; color: #f87171; border: 1px solid #ef4444; }
+
+  /* Legend */
+  .legend {
+    margin-top: 40px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 16px 24px;
+    color: #e2e8f0;
+    font-size: 0.75rem;
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-line-solid { width: 30px; height: 2px; background: rgba(255,255,255,0.4); }
+  .legend-line-dashed {
+    width: 30px; height: 2px;
+    background: repeating-linear-gradient(to right,#f59e0b 0,#f59e0b 5px,transparent 5px,transparent 10px);
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .diagram { flex-direction: column; align-items: center; }
+    .col-async { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Event-Driven Notification Dispatcher</h1>
+<p class="subtitle">System Architecture &amp; Data Flow Diagram</p>
+
+<div class="diagram">
+
+  <!-- ── LEFT: synchronous path ── -->
+  <div class="col-sync">
+
+    <!-- CLIENT -->
+    <div class="box c-client">
+      <div class="box-icon">👤</div>
+      <div class="box-label">HTTP Client</div>
+      <div class="box-title">Client</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:18px;"></div>
+      <div class="arrow-label">POST /api/v1/events</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- EXPRESS API -->
+    <div class="box c-api">
+      <div class="box-icon">⚙️</div>
+      <div class="box-label">Backend Framework</div>
+      <div class="box-title">Express.js API Server</div>
+      <div class="box-fields">Port: 3000 &nbsp;|&nbsp; Node.js v24</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">① Validate request body</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- VALIDATION -->
+    <div class="box c-valid">
+      <div class="box-icon">🔍</div>
+      <div class="box-label">Middleware</div>
+      <div class="box-title">Request Validation</div>
+      <div class="box-fields">Checks: event_type, recipient<br/>400 on missing fields · 400 on bad JSON</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">② Insert row into events table</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- EVENTS TABLE -->
+    <div class="box c-events">
+      <div class="box-icon">🗄️</div>
+      <div class="box-label">SQLite · events table</div>
+      <div class="box-title">Event Persisted</div>
+      <div class="box-fields">id · event_type · payload · created_at</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">③ Create notification (status: pending)</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- NOTIFICATIONS TABLE -->
+    <div class="box c-notifs">
+      <div class="box-icon">🗄️</div>
+      <div class="box-label">SQLite · notifications table</div>
+      <div class="box-title">Notification Created</div>
+      <div class="box-fields">id · event_id · recipient · channel<br/>status=<b>pending</b> · retry_count=0</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">④ Push task to in-memory queue</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- QUEUE -->
+    <div class="box c-queue">
+      <div class="box-icon">📦</div>
+      <div class="box-label">In-Memory · Array-based FIFO</div>
+      <div class="box-title">Notification Queue</div>
+      <div class="box-fields">notification_id · recipient · channel<br/>event_type · data</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line dashed" style="min-height:10px;"></div>
+      <div class="arrow-label amber">⑤ Return 202 Accepted immediately</div>
+      <div class="arrow-line dashed" style="min-height:6px;"></div>
+      <div class="arrow-head amber"></div>
+    </div>
+
+    <!-- 202 RESPONSE -->
+    <div class="box c-client" style="border-color:#fbbf24; border-style:dashed;">
+      <div class="box-icon">✅</div>
+      <div class="box-label">HTTP 202 Accepted</div>
+      <div class="box-title">Immediate Response</div>
+      <div class="box-fields">{ message, tracking_id,<br/>notification_id, status: "pending" }</div>
+    </div>
+
+  </div><!-- end col-sync -->
+
+  <!-- ── RIGHT: async / background path ── -->
+  <div class="col-async">
+
+    <!-- WORKER -->
+    <div class="box c-worker">
+      <div class="box-icon">🔄</div>
+      <div class="box-label">Background Process</div>
+      <div class="box-title">Queue Worker</div>
+      <div class="box-fields">Async loop · dequeues tasks<br/>one at a time · non-blocking</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">⑦ Simulate async send</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- SIMULATED SEND -->
+    <div class="box c-sim">
+      <div class="box-icon">📧</div>
+      <div class="box-label">Simulated Notification</div>
+      <div class="box-title">Email Channel Send</div>
+      <div class="box-fields">⏱ Random delay: 500 – 1000 ms<br/>⚠️ 10% random failure rate</div>
+      <div class="badges">
+        <span class="badge badge-green">completed</span>
+        <span class="badge badge-red">failed</span>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line" style="min-height:10px;"></div>
+      <div class="arrow-label">⑧ Update status + retry_count</div>
+      <div class="arrow-line" style="min-height:6px;"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- UPDATE DB -->
+    <div class="box c-update">
+      <div class="box-icon">🔁</div>
+      <div class="box-label">SQLite · notifications table</div>
+      <div class="box-title">Status Updated</div>
+      <div class="box-fields">status → completed | failed<br/>retry_count incremented on failure<br/>updated_at = CURRENT_TIMESTAMP</div>
+    </div>
+
+  </div><!-- end col-async -->
+
+</div><!-- end diagram -->
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-line-solid"></div>
+    <span>Synchronous Flow</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-line-dashed"></div>
+    <span>Async / Background Flow</span>
+  </div>
+  <div class="legend-item">
+    <span style="color:#0ea5e9">■</span><span>Client</span>
+  </div>
+  <div class="legend-item">
+    <span style="color:#6366f1">■</span><span>Express API</span>
+  </div>
+  <div class="legend-item">
+    <span style="color:#22c55e">■</span><span>SQLite</span>
+  </div>
+  <div class="legend-item">
+    <span style="color:#a855f7">■</span><span>In-Memory Queue</span>
+  </div>
+  <div class="legend-item">
+    <span style="color:#f97316">■</span><span>Worker</span>
+  </div>
+</div>
+
+</body>
+</html>

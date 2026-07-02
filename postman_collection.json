@@ -1,0 +1,213 @@
+{
+  "info": {
+    "name": "Event-Driven Notification Dispatcher",
+    "description": "Complete API collection for the Event-Driven Notification Dispatcher assessment.\n\nHow to use:\n1. Import this file into Postman\n2. Make sure the server is running: `npm start`\n3. Run requests individually or use Collection Runner to run all at once.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "✅ Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Returns server uptime, DB connectivity status, queue telemetry, and notification summary."
+      },
+      "response": []
+    },
+    {
+      "name": "📨 Trigger Event — order_placed (normal priority)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"order_placed\",\n  \"recipient\": \"user@example.com\",\n  \"data\": {\n    \"order_id\": 101\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "The primary endpoint. Returns 202 Accepted immediately. The notification is processed asynchronously."
+      },
+      "response": []
+    },
+    {
+      "name": "🚨 Trigger Event — payment_failed (HIGH priority)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"payment_failed\",\n  \"recipient\": \"vip@example.com\",\n  \"data\": {\n    \"order_id\": 202,\n    \"amount\": 499.99,\n    \"reason\": \"insufficient_funds\"\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "HIGH priority event — jumps the queue ahead of normal/low priority tasks."
+      },
+      "response": []
+    },
+    {
+      "name": "💳 Trigger Event — payment_received (normal priority)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"payment_received\",\n  \"recipient\": \"buyer@example.com\",\n  \"data\": {\n    \"order_id\": 303,\n    \"amount\": 129.99\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "👤 Trigger Event — user_registered (normal priority)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"user_registered\",\n  \"recipient\": \"newuser@example.com\",\n  \"data\": {\n    \"user_id\": 42,\n    \"username\": \"john_doe\"\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "📦 Trigger Event — shipment_sent (low priority)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"shipment_sent\",\n  \"recipient\": \"customer@example.com\",\n  \"data\": {\n    \"order_id\": 404,\n    \"tracking_number\": \"TRK-XYZ-9999\"\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "LOW priority event — processed after high and normal priority tasks."
+      },
+      "response": []
+    },
+    {
+      "name": "🔍 Get Notification Status (by ID)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/notifications/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "notifications", "1"]
+        },
+        "description": "Check the current status of a specific notification. Replace '1' with the notification_id from the POST response. Status changes from 'pending' → 'completed' or 'failed' within 0.5–1s."
+      },
+      "response": []
+    },
+    {
+      "name": "❌ Error — Missing event_type (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"recipient\": \"user@example.com\",\n  \"data\": { \"order_id\": 999 }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "Should return 400 with: {\"error\": \"event_type and recipient are required\"}"
+      },
+      "response": []
+    },
+    {
+      "name": "❌ Error — Missing recipient (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"order_placed\",\n  \"data\": { \"order_id\": 999 }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "Should return 400 with: {\"error\": \"event_type and recipient are required\"}"
+      },
+      "response": []
+    },
+    {
+      "name": "❌ Error — Invalid email format (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_type\": \"order_placed\",\n  \"recipient\": \"not-a-valid-email\",\n  \"data\": { \"order_id\": 999 }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "Should return 400 with: {\"error\": \"recipient must be a valid email address\"}"
+      },
+      "response": []
+    },
+    {
+      "name": "❌ Error — Invalid JSON (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{ this is not valid json !!!",
+          "options": { "raw": { "language": "text" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/events",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "events"]
+        },
+        "description": "Should return 400 with: {\"error\": \"Invalid JSON payload\"}"
+      },
+      "response": []
+    }
+  ]
+}

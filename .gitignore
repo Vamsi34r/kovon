@@ -1,0 +1,7 @@
+node_modules/
+*.db
+*.db-wal
+*.db-shm
+.env
+test-payload.json
+test-bad-payload.json
