@@ -28,5 +28,8 @@
   },
   "allowScripts": {
     "sqlite3@5.1.7": true
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
